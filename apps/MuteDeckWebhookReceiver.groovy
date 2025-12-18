@@ -57,7 +57,7 @@ definition(
     category: "Convenience",
     iconUrl:  "",
     iconX2Url:"",
-    importUrl: "https://raw.githubusercontent.com/popcornhax/hubitat-mutedeck/refs/heads/main/apps/MuteDeckWebhookReceiver.groovy"
+    importUrl: "https://raw.githubusercontent.com/popcornhax/hubitat-mutedeck/main/apps/MuteDeckWebhookReceiver.groovy"
 )
 
 preferences { page(name: "mainPage") }

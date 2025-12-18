@@ -3,16 +3,17 @@
   "author": "popcornhax",
   "version": "1.0.0",
   "minimumHEVersion": "2.3.0",
-  "licenseFile": "LICENSE",
+  "dateReleased": "2025-12-18",
+  "license": "Free for personal use. No warranty expressed or implied.",
   "documentationLink": "https://github.com/popcornhax/hubitat-mutedeck",
   "communityLink": "",
   "releaseNotes": "Initial public release",
   "apps": [
     {
-      "id": "b3b7c9a6-7a5b-4b8a-9c6e-k8fjsufnsmk2",
+      "id": "b3b7c9a6-7a5b-4b8a-9c6e-6e2f1e2d3c4d",
       "name": "MuteDeck Webhook Receiver",
       "namespace": "popcornhax",
-      "location": "apps/MuteDeckWebhookReceiver.groovy",
+      "location": "https://raw.githubusercontent.com/popcornhax/hubitat-mutedeck/main/apps/MuteDeckWebhookReceiver.groovy",
       "required": true
     }
   ]

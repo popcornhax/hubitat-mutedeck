@@ -1,8 +1,6 @@
-
-
 # MuteDeck Webhook Receiver for Hubitat
 
-This Hubitat app receives webhook events from **MuteDeck** (https://mutedeck.com) and exposes meeting state (mute, in-call, video, screen sharing, recording) to Hubitat as standard device events using **Switches**.
+This Hubitat app receives webhook events from **MuteDeck** (<https://mutedeck.com>) and exposes meeting state (mute, in-call, video, screen sharing, recording) to Hubitat as standard device events using **Switches**.
 
 ---
 
@@ -20,6 +18,7 @@ When MuteDeck sends a webhook update, this app can:
 - Keep all logic local to your Hubitat hub (LAN‑first by default)
 
 Example use cases:
+
 - Turn on a key light when your camera is active
 - Show mute / in‑call status on a dashboard tile
 - Trigger a “do not disturb” lighting scene when a meeting starts
@@ -37,6 +36,7 @@ Example use cases:
 ## Security Model (Important, but simple)
 
 ### OAuth (Optional)
+
 - OAuth is **optional** for LAN-only mode
 - If OAuth is enabled for this app in Hubitat Apps Code:
   - A tokenized webhook URL is generated
@@ -45,6 +45,7 @@ Example use cases:
   - The **local LAN endpoint is unauthenticated**
 
 ### Cloud / External Access (Optional)
+
 - The app can optionally expose a **Hubitat Cloud endpoint**
 - Cloud mode **requires OAuth**
 - Cloud access is disabled unless explicitly enabled by the user
