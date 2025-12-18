@@ -1,7 +1,7 @@
 {
   "packageName": "MuteDeck Webhook Receiver",
   "author": "popcornhax",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minimumHEVersion": "2.3.0",
   "dateReleased": "2025-12-18",
   "documentationLink": "https://github.com/popcornhax/hubitat-mutedeck",
@@ -13,7 +13,8 @@
       "name": "MuteDeck Webhook Receiver",
       "namespace": "popcornhax",
       "location": "https://raw.githubusercontent.com/popcornhax/hubitat-mutedeck/main/apps/MuteDeckWebhookReceiver.groovy",
-      "required": true
+      "required": true,
+      "oauth": true
     }
   ]
 }

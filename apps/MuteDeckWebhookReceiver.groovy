@@ -18,17 +18,13 @@
  *  Authentication:
  *  ---------------
  *  - By default, the webhook endpoint is intended for use on a trusted home LAN.
- *  - OAuth is OPTIONAL:
- *      • If OAuth is enabled for this app in Hubitat Apps Code, an access_token
- *        will be generated and required for all requests.
- *      • If OAuth is not enabled, the local LAN endpoint is unauthenticated.
- *  - Optional Hubitat Cloud endpoint support is provided, but REQUIRES OAuth.
+ *  - Optional Hubitat Cloud endpoint support is provided.
  *    Cloud access is disabled unless explicitly enabled by the user.
  *
  *  Installation Notes:
  *  -------------------
  *  1. Install this app via Apps Code in Hubitat.
- *  2. (Optional) Enable OAuth for this app in Apps Code.
+ *  2. Enable OAuth for this app in Apps Code.
  *  3. Configure desired Switch mappings.
  *  4. Copy the generated webhook URL into MuteDeck settings.
  *
@@ -55,6 +51,7 @@ definition(
     author: "You",
     description: "Receives MuteDeck webhook POSTs and updates selected Hubitat devices",
     category: "Convenience",
+    oauth: true,
     iconUrl:  "",
     iconX2Url:"",
     importUrl: "https://raw.githubusercontent.com/popcornhax/hubitat-mutedeck/main/apps/MuteDeckWebhookReceiver.groovy"
@@ -94,26 +91,21 @@ def mainPage() {
             initializeEndpointAuth()
 
             Boolean cloudMode = (settings?.useCloudEndpoint as Boolean) ?: false
+            def token = state.accessToken
 
-            if (cloudMode && !state.accessToken) {
-                paragraph "<b>Cloud endpoint requires OAuth.</b> Enable OAuth for this app in Apps Code (or re-add oauth: true) so an access token can be generated."
-                paragraph "Local (LAN) mode can run unauthenticated without OAuth."
+            if (!token) {
+                paragraph "<b>OAuth token missing.</b> Ensure OAuth is enabled for this app in Apps Code, then open this app once to generate an access token."
                 return
             }
 
             def base = cloudMode ? safeCloudBaseUrl() : safeLocalBaseUrl()
-            def urlInfo = buildWebhookUrl(base, cloudMode)
+            def urlInfo = buildWebhookUrl(base)
 
             paragraph "Paste into MuteDeck → Settings → Notifications → Webhook URL:"
             paragraph "<code>${urlInfo.url}</code>"
 
-            if (urlInfo.mode == "oauth") {
-                paragraph "Auth: oAuth access_token enabled.<br>Tip: Visit <a target=_new href='${base}/mutedeck?access_token=${state.accessToken}'>${base}/mutedeck?access_token=${state.accessToken}</a> to see last payload."
-            } else if (urlInfo.mode == "open") {
-                paragraph "Auth: none (LAN only).<br>Tip: Visit <a target=_new href='${base}/mutedeck'>${base}/mutedeck</a> to see last payload."
-            } else {
-                paragraph "<b>Action required:</b> Unable to compute endpoint base URL."
-            }
+            paragraph "Auth: OAuth access_token required."
+            paragraph "Tip: Visit <a target=_new href='${base}/mutedeck?access_token=${token}'>${base}/mutedeck?access_token=${token}</a> to see last payload."
         }
     }
 }
@@ -122,18 +114,9 @@ def installed() { if (debugLogging) log.debug "Installed"; initialize() }
 def updated()   { if (debugLogging) log.debug "Updated";   initialize() }
 def initialize(){ initializeEndpointAuth() }
 
-/**
- * Optional OAuth:
- * If OAuth is enabled for the app, createAccessToken() works. Otherwise it throws and we run open (LAN only).
- */
 private void initializeEndpointAuth(Boolean forceNewAccessToken = false) {
     if (!state.accessToken || forceNewAccessToken) {
-        try {
-            createAccessToken()
-        } catch (Exception ex) {
-            state.remove("accessToken")
-            if (debugLogging) log.debug "OAuth not enabled/available; LAN endpoint will be unauthenticated"
-        }
+        createAccessToken()
     }
 }
 
@@ -145,20 +128,10 @@ private String safeCloudBaseUrl() {
     try { return (getFullApiServerUrl()?.toString() ?: "") } catch (e) { return "" }
 }
 
-private Map buildWebhookUrl(String base, Boolean cloudMode) {
-    boolean cm = (cloudMode ?: false)
-
+private Map buildWebhookUrl(String base) {
     if (!base) return [mode: "error", url: "(Unable to compute endpoint base URL)"]
-
-    if (state.accessToken) {
-        return [mode: "oauth", url: "${base}/mutedeck?access_token=${state.accessToken}"]
-    }
-
-    // No token: allow only if NOT cloud mode
-    if (!cm) return [mode: "open", url: "${base}/mutedeck"]
-
-    // Should not happen because UI blocks it, but keep safe.
-    return [mode: "error", url: "(Cloud mode requires OAuth token)"]
+    if (!state.accessToken) return [mode: "error", url: "(OAuth token missing - open this app to generate token)"]
+    return [mode: "oauth", url: "${base}/mutedeck?access_token=${state.accessToken}"]
 }
 
 mappings {
@@ -199,14 +172,15 @@ def handleMuteDeckWebhook() {
     render status: 200, contentType: "application/json", data: [ok: true]
 }
 
+
 private boolean authorizeRequest() {
-    // If OAuth is enabled, Hubitat enforces access_token before calling handlers.
-    // If OAuth isn't enabled, the endpoint is intentionally open (LAN mode only; UI blocks cloud).
     if (allowedIps) {
         def allowed = allowedIps.split(",").collect { it.trim() }.findAll { it }
         def src = (request?.getHeader("X-Forwarded-For") ?: request?.remoteAddr ?: "").toString()
+        // X-Forwarded-For can be a list; take first hop
         if (src.contains(",")) src = src.split(",")[0].trim()
 
+        // Note: With cloud mode enabled, src will usually be a Hubitat relay IP, not your original client.
         if (src && allowed && !allowed.contains(src)) {
             log.warn "Webhook rejected: source IP ${src} not in allowlist"
             render status: 403, contentType: "application/json", data: [ok: false, error: "forbidden"]

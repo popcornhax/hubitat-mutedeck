@@ -33,21 +33,9 @@ Example use cases:
 
 ---
 
-## Security Model (Important, but simple)
-
-### OAuth (Optional)
-
-- OAuth is **optional** for LAN-only mode
-- If OAuth is enabled for this app in Hubitat Apps Code:
-  - A tokenized webhook URL is generated
-  - Requests require `access_token=...`
-- If OAuth is not enabled:
-  - The **local LAN endpoint is unauthenticated**
-
 ### Cloud / External Access (Optional)
 
 - The app can optionally expose a **Hubitat Cloud endpoint**
-- Cloud mode **requires OAuth**
 - Cloud access is disabled unless explicitly enabled by the user
 
 ---
@@ -59,18 +47,17 @@ Example use cases:
 3. Select **MuteDeck Webhook Receiver**
 4. Complete installation
 
-(Alternatively, install manually via Apps Code using the Groovy file.)
+(Alternatively, install manually via Apps Code using the Groovy file and enable oAuth for the app.)
 
 ---
 
 ## Configuration
 
 1. Add the app under **Apps**
-2. (Optional) Enable OAuth for the app in **Apps Code**
-3. Select the Switches you want to map to each MuteDeck state
-4. (Optional) Enable Cloud Endpoint access
-5. Copy the generated webhook URL
-6. Paste the URL into **MuteDeck → Settings → Notifications → Webhook**
+2. Select the Switches you want to map to each MuteDeck state
+3. (Optional) Enable Cloud Endpoint access
+4. Copy the generated webhook URL
+5. Paste the URL into **MuteDeck → Settings → Notifications → Webhook**
 
 Changes take effect immediately.
 
