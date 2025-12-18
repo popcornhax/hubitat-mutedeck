@@ -64,7 +64,7 @@ preferences { page(name: "mainPage") }
 
 def mainPage() {
     dynamicPage(name: "mainPage", title: "MuteDeck Webhook Receiver", install: true, uninstall: true) {
-        section("Device mapping (select existing Virtual Switches)") {
+        section("Device mapping (select existing Switches)") {
             input "muteSwitches",   "capability.switch", title: "Mute switches (ON=muted)", multiple: true, required: false
             input "callSwitches",   "capability.switch", title: "Call/Meeting switches (ON=in call)", multiple: true, required: false
             input "videoSwitches",  "capability.switch", title: "Video switches (ON=video active)", multiple: true, required: false
