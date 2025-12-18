@@ -71,7 +71,7 @@ def mainPage() {
 
         section("Endpoint access") {
             input "useCloudEndpoint", "bool",
-                title: "Allow external access via Hubitat Cloud endpoint (requires enabling OAuth support for app)",
+                title: "Allow external access via Hubitat Cloud endpoint",
                 defaultValue: false,
                 required: false,
                 submitOnChange: true
@@ -104,7 +104,6 @@ def mainPage() {
             paragraph "Paste into MuteDeck → Settings → Notifications → Webhook URL:"
             paragraph "<code>${urlInfo.url}</code>"
 
-            paragraph "Auth: OAuth access_token required."
             paragraph "Tip: Visit <a target=_new href='${base}/mutedeck?access_token=${token}'>${base}/mutedeck?access_token=${token}</a> to see last payload."
         }
     }
