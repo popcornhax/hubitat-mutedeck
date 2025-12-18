@@ -1,7 +1,7 @@
 {
   "packageName": "MuteDeck Webhook Receiver",
   "author": "popcornhax",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minimumHEVersion": "2.3.0",
   "dateReleased": "2025-12-18",
   "documentationLink": "https://github.com/popcornhax/hubitat-mutedeck",

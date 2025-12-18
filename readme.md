@@ -14,6 +14,8 @@ When MuteDeck sends a webhook update, this app can:
   - Camera (video) state
   - Screen sharing state
   - Recording state
+- All switches are turned off when a call ends
+  - MuteDeck can control system mic when outside a call, but it seems to have a bug where it doesn't report changes to the webhook
 - Enable automations using Rule Machine, dashboards, indicators, or lighting scenes
 - Keep all logic local to your Hubitat hub (LAN‑first by default)
 

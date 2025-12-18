@@ -62,7 +62,7 @@ preferences { page(name: "mainPage") }
 def mainPage() {
     dynamicPage(name: "mainPage", title: "MuteDeck Webhook Receiver", install: true, uninstall: true) {
         section("Device mapping (select existing Switches)") {
-            input "muteSwitches",   "capability.switch", title: "Mute switches (ON=muted)", multiple: true, required: false
+            input "muteSwitches",   "capability.switch", title: "Mute switches (ON=unmuted)", multiple: true, required: false
             input "callSwitches",   "capability.switch", title: "Call/Meeting switches (ON=in call)", multiple: true, required: false
             input "videoSwitches",  "capability.switch", title: "Video switches (ON=video active)", multiple: true, required: false
             input "shareSwitches",  "capability.switch", title: "Screen-share switches (ON=sharing)", multiple: true, required: false
@@ -101,7 +101,7 @@ def mainPage() {
             def base = cloudMode ? safeCloudBaseUrl() : safeLocalBaseUrl()
             def urlInfo = buildWebhookUrl(base)
 
-            paragraph "Paste into MuteDeck → Settings → Notifications → Webhook URL:"
+            paragraph "Paste into MuteDeck → Settings → Notifications → Enable Webook → Webhook URL"
             paragraph "<code>${urlInfo.url}</code>"
 
             paragraph "Tip: Visit <a target=_new href='${base}/mutedeck?access_token=${token}'>${base}/mutedeck?access_token=${token}</a> to see last payload."
@@ -161,11 +161,24 @@ def handleMuteDeckWebhook() {
     state.lastSeen = new Date().format("yyyy-MM-dd'T'HH:mm:ssXXX", location?.timeZone ?: TimeZone.getTimeZone("UTC"))
     state.lastPayload = payload
 
-    applyStateToSwitches("mute",   payload.mute,   muteSwitches)
+    // Always update call state first
     applyStateToSwitches("call",   payload.call,   callSwitches)
-    applyStateToSwitches("video",  payload.video,  videoSwitches)
-    applyStateToSwitches("share",  payload.share,  shareSwitches)
-    applyStateToSwitches("record", payload.record, recordSwitches)
+
+    // Guardrail: Only allow other switches to be ON when a call is active.
+    // This avoids "stuck" mute state when MuteDeck switches to controlling the system mic outside a meeting.
+    def inCall = (payload.call?.toString() == "active")
+    if (!inCall) {
+        if (debugLogging) log.debug "No active call; forcing non-call switches OFF (mute/video/share/record)"
+        forceSwitchesOff(muteSwitches)
+        forceSwitchesOff(videoSwitches)
+        forceSwitchesOff(shareSwitches)
+        forceSwitchesOff(recordSwitches)
+    } else {
+        applyStateToSwitches("mute",   payload.mute,   muteSwitches)
+        applyStateToSwitches("video",  payload.video,  videoSwitches)
+        applyStateToSwitches("share",  payload.share,  shareSwitches)
+        applyStateToSwitches("record", payload.record, recordSwitches)
+    }
 
     if (debugLogging) log.debug "Processed MuteDeck payload: ${payload}"
     render status: 200, contentType: "application/json", data: [ok: true]
@@ -197,12 +210,24 @@ private Map parseJsonPayload() {
     catch (e) { log.warn "Failed to parse JSON body: ${e}"; return [:] }
 }
 
+private void forceSwitchesOff(def switches) {
+    if (!switches) return
+    switches.each { sw ->
+        try { sw.off() }
+        catch (e) { log.warn "Failed to force switch OFF ${sw?.displayName}: ${e}" }
+    }
+}
+
 private void applyStateToSwitches(String field, Object valueObj, def switches) {
     if (!switches) return
     def value = valueObj?.toString()
     if (!(value in ["active", "inactive"])) {
         if (debugLogging) log.debug "Field ${field}=${value} ignored (expected active/inactive)"
         return
+    }
+    if (field == "mute") {
+        // Mute logic is inverted: active = unmuted
+        value = (value == "active") ? "inactive" : "active"
     }
     switches.each { sw ->
         try { (value == "active") ? sw.on() : sw.off() }
