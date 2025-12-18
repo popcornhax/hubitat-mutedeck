@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "minimumHEVersion": "2.3.0",
   "dateReleased": "2025-12-18",
-  "license": "Free for personal use. No warranty expressed or implied.",
   "documentationLink": "https://github.com/popcornhax/hubitat-mutedeck",
   "communityLink": "",
   "releaseNotes": "Initial public release",
