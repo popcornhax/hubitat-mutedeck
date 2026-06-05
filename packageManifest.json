@@ -1,12 +1,12 @@
 {
   "packageName": "MuteDeck Webhook Receiver",
   "author": "popcornhax",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "minimumHEVersion": "2.3.0",
-  "dateReleased": "2025-12-18",
+  "dateReleased": "2026-06-05",
   "documentationLink": "https://github.com/popcornhax/hubitat-mutedeck",
   "communityLink": "",
-  "releaseNotes": "Initial public release",
+  "releaseNotes": "Updated logic for handling mic muting & triggers during active calls",
   "apps": [
     {
       "id": "b3b7c9a6-7a5b-4b8a-9c6e-6e2f1e2d3c4d",

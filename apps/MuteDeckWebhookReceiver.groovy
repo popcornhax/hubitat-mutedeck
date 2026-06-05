@@ -69,6 +69,13 @@ def mainPage() {
             input "recordSwitches", "capability.switch", title: "Record switches (ON=recording)", multiple: true, required: false
         }
 
+        section("Behavior") {
+            input "updateMuteOutsideCall", "bool",
+                title: "Update mute switches when not in a call",
+                defaultValue: false,
+                required: false
+        }
+
         section("Endpoint access") {
             input "useCloudEndpoint", "bool",
                 title: "Allow external access via Hubitat Cloud endpoint",
@@ -101,7 +108,7 @@ def mainPage() {
             def base = cloudMode ? safeCloudBaseUrl() : safeLocalBaseUrl()
             def urlInfo = buildWebhookUrl(base)
 
-            paragraph "Paste into MuteDeck → Settings → Notifications → Enable Webook → Webhook URL"
+            paragraph "Paste into MuteDeck → Settings → Notifications → Enable Webhook → Webhook URL"
             paragraph "<code>${urlInfo.url}</code>"
 
             paragraph "Tip: Visit <a target=_new href='${base}/mutedeck?access_token=${token}'>${base}/mutedeck?access_token=${token}</a> to see last payload."
@@ -161,23 +168,30 @@ def handleMuteDeckWebhook() {
     state.lastSeen = new Date().format("yyyy-MM-dd'T'HH:mm:ssXXX", location?.timeZone ?: TimeZone.getTimeZone("UTC"))
     state.lastPayload = payload
 
-    // Always update call state first
-    applyStateToSwitches("call",   payload.call,   callSwitches)
+    // Update call switches only when the call state changes. MuteDeck sends the full
+    // current state on many events, so re-sending ON for every camera/mute update can
+    // re-trigger lights even though the meeting state did not change.
+    applyStateToSwitchesIfChanged("call", payload.call, callSwitches)
 
-    // Guardrail: Only allow other switches to be ON when a call is active.
-    // This avoids "stuck" mute state when MuteDeck switches to controlling the system mic outside a meeting.
-    def inCall = (payload.call?.toString() == "active")
+    // Guardrail: Only allow video/share/record switches to be ON when a call is active.
+    // Mute can optionally be tracked outside calls now that MuteDeck sends system mic events.
+    def inCall = isActive(payload.call)
     if (!inCall) {
-        if (debugLogging) log.debug "No active call; forcing non-call switches OFF (mute/video/share/record)"
-        forceSwitchesOff(muteSwitches)
-        forceSwitchesOff(videoSwitches)
-        forceSwitchesOff(shareSwitches)
-        forceSwitchesOff(recordSwitches)
+        if (debugLogging) log.debug "No active call; forcing video/share/record switches OFF"
+        forceSwitchesOffIfNeeded("video", videoSwitches)
+        forceSwitchesOffIfNeeded("share", shareSwitches)
+        forceSwitchesOffIfNeeded("record", recordSwitches)
+
+        if ((settings?.updateMuteOutsideCall as Boolean) == true) {
+            applyStateToSwitchesIfChanged("mute", payload.mute, muteSwitches)
+        } else {
+            forceSwitchesOffIfNeeded("mute", muteSwitches)
+        }
     } else {
-        applyStateToSwitches("mute",   payload.mute,   muteSwitches)
-        applyStateToSwitches("video",  payload.video,  videoSwitches)
-        applyStateToSwitches("share",  payload.share,  shareSwitches)
-        applyStateToSwitches("record", payload.record, recordSwitches)
+        applyStateToSwitchesIfChanged("mute", payload.mute, muteSwitches)
+        applyStateToSwitchesIfChanged("video", payload.video, videoSwitches)
+        applyStateToSwitchesIfChanged("share", payload.share, shareSwitches)
+        applyStateToSwitchesIfChanged("record", payload.record, recordSwitches)
     }
 
     if (debugLogging) log.debug "Processed MuteDeck payload: ${payload}"
@@ -210,27 +224,59 @@ private Map parseJsonPayload() {
     catch (e) { log.warn "Failed to parse JSON body: ${e}"; return [:] }
 }
 
-private void forceSwitchesOff(def switches) {
+private void forceSwitchesOffIfNeeded(String field, def switches) {
     if (!switches) return
+
+    def stateKey = "last_${field}"
+    if (state[stateKey] == "inactive") {
+        if (debugLogging) log.debug "Field ${field} already inactive; skipping forced OFF"
+        return
+    }
+
+    state[stateKey] = "inactive"
     switches.each { sw ->
         try { sw.off() }
-        catch (e) { log.warn "Failed to force switch OFF ${sw?.displayName}: ${e}" }
+        catch (e) { log.warn "Failed to force ${field} switch OFF ${sw?.displayName}: ${e}" }
     }
 }
 
-private void applyStateToSwitches(String field, Object valueObj, def switches) {
+private void applyStateToSwitchesIfChanged(String field, Object valueObj, def switches) {
     if (!switches) return
-    def value = valueObj?.toString()
-    if (!(value in ["active", "inactive"])) {
-        if (debugLogging) log.debug "Field ${field}=${value} ignored (expected active/inactive)"
+
+    def value = normalizeMuteDeckState(field, valueObj)
+    if (!value) return
+
+    def stateKey = "last_${field}"
+    if (state[stateKey] == value) {
+        if (debugLogging) log.debug "Field ${field} unchanged (${value}); skipping switch update"
         return
     }
-    if (field == "mute") {
-        // Mute logic is inverted: active = unmuted
-        value = (value == "active") ? "inactive" : "active"
-    }
+
+    state[stateKey] = value
     switches.each { sw ->
         try { (value == "active") ? sw.on() : sw.off() }
         catch (e) { log.warn "Failed to set ${field} switch ${sw?.displayName}: ${e}" }
     }
+}
+
+private String normalizeMuteDeckState(String field, Object valueObj) {
+    def value = valueObj?.toString()
+
+    if (value == "disabled") value = "inactive"
+
+    if (!(value in ["active", "inactive"])) {
+        if (debugLogging) log.debug "Field ${field}=${value} ignored (expected active/inactive/disabled)"
+        return null
+    }
+
+    if (field == "mute") {
+        // Preserve original behavior: switch ON means microphone is live/unmuted.
+        return (value == "active") ? "inactive" : "active"
+    }
+
+    return value
+}
+
+private Boolean isActive(Object valueObj) {
+    return valueObj?.toString() == "active"
 }

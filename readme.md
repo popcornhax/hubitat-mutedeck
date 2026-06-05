@@ -14,8 +14,8 @@ When MuteDeck sends a webhook update, this app can:
   - Camera (video) state
   - Screen sharing state
   - Recording state
-- All switches are turned off when a call ends
-  - MuteDeck can control system mic when outside a call, but it seems to have a bug where it doesn't report changes to the webhook
+- Video, screen sharing, and recording indicators are automatically turned off when a call ends
+- Optionally track system microphone mute/unmute state even when not in a call
 - Enable automations using Rule Machine, dashboards, indicators, or lighting scenes
 - Keep all logic local to your Hubitat hub (LAN‑first by default)
 
@@ -57,11 +57,26 @@ Example use cases:
 
 1. Add the app under **Apps**
 2. Select the Switches you want to map to each MuteDeck state
-3. (Optional) Enable Cloud Endpoint access
-4. Copy the generated webhook URL
-5. Paste the URL into **MuteDeck → Settings → Notifications → Webhook**
+3. (Optional) Enable "Update mute switches when not in a call"
+4. (Optional) Enable Cloud Endpoint access
+5. Copy the generated webhook URL
+6. Paste the URL into **MuteDeck → Settings → Notifications → Webhook**
 
 Changes take effect immediately.
+
+---
+
+## Switch Semantics
+
+The selected Hubitat switches represent the state itself:
+
+| State | Switch ON Means |
+|-------|-----------------|
+| Mute | Microphone is live (unmuted) |
+| Call | Active meeting/call |
+| Video | Camera enabled |
+| Share | Screen sharing active |
+| Record | Recording active |
 
 ---
 
