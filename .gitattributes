@@ -1,0 +1,30 @@
+# Normalize text across macOS, Windows, and Linux. Binary files remain unchanged.
+* text=auto
+
+# Keep executable shell and PowerShell scripts in LF form on every host.
+*.sh text eol=lf
+*.bash text eol=lf
+*.ps1 text eol=lf
+
+# Windows command scripts use CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Explicit binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.7z binary
+*.mp4 binary
+*.mov binary
+*.bin binary
+*.uf2 binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
